@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Save, FileText } from 'lucide-react';
+import { Save, FileText, PhoneOff } from 'lucide-react';
 
 interface ControlPanelProps {
   signalsText: string;
@@ -11,6 +11,7 @@ interface ControlPanelProps {
   onSaveTsMouseDown: (e: React.MouseEvent | React.TouchEvent) => void;
   onSaveTsMouseUp: (e: React.MouseEvent | React.TouchEvent) => void;
   onSaveTsMouseLeave: () => void;
+  onRingOff: () => void;
 }
 
 const ControlPanel = ({
@@ -20,7 +21,8 @@ const ControlPanel = ({
   onSaveSignals,
   onSaveTsMouseDown,
   onSaveTsMouseUp,
-  onSaveTsMouseLeave
+  onSaveTsMouseLeave,
+  onRingOff
 }: ControlPanelProps) => {
 
   const handleSaveClick = () => {
@@ -35,7 +37,17 @@ const ControlPanel = ({
 
   return (
     <div className="bg-card p-4">
-      <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
+      <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto">
+        <Button
+          onClick={onRingOff}
+          variant="destructive"
+          className="h-16 flex flex-col gap-1 transition-transform duration-200 select-none"
+          style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+        >
+          <PhoneOff className="h-6 w-6" />
+          <span className="text-xs">Ring Off</span>
+        </Button>
+
         <Button
           onClick={handleSaveClick}
           variant="default"

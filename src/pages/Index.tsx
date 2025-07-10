@@ -30,7 +30,8 @@ const Index = () => {
     handleRedo,
     canUndo,
     canRedo,
-    handleClear
+    handleClear,
+    handleRingOff,
   } = useSignalTracker();
 
   return (
@@ -53,6 +54,7 @@ const Index = () => {
         onSaveTsMouseDown={handleSaveTsMouseDown}
         onSaveTsMouseUp={handleSaveTsMouseUp}
         onSaveTsMouseLeave={handleSaveTsMouseLeave}
+        onRingOff={handleRingOff}
       />
 
       <SaveTsDialog
