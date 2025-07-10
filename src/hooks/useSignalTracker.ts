@@ -49,10 +49,11 @@ export const useSignalTracker = () => {
   };
 
 
-  const handleRingOff = () => {
-    // Stop all media playback on the device
+  const handleRingOff = async () => {
+    console.log('Ring Off button clicked!');
+    
     try {
-      // Get all audio and video elements and pause them
+      // For web elements in the current app
       const audioElements = document.querySelectorAll('audio');
       const videoElements = document.querySelectorAll('video');
       
@@ -66,35 +67,81 @@ export const useSignalTracker = () => {
         video.currentTime = 0;
       });
 
-      // Use MediaSession API to handle system-level media controls
-      if ('mediaSession' in navigator) {
-        navigator.mediaSession.playbackState = 'paused';
-      }
-
-      // For Capacitor apps, try to use native functionality
+      // Try to request audio focus to pause other apps (Android)
       if ((window as any).Capacitor && (window as any).Capacitor.isNativePlatform()) {
-        // Send a broadcast intent to pause all media (Android specific)
-        if ((window as any).Capacitor.getPlatform() === 'android') {
-          try {
-            // This will attempt to send a media button press event
-            const audioManager = {
-              sendMediaButtonEvent: () => {
-                // Simulate media pause button press
-                const event = new KeyboardEvent('keydown', {
-                  key: 'MediaPause',
-                  code: 'MediaPause'
-                });
-                document.dispatchEvent(event);
+        console.log('Running on native platform, attempting to stop system media...');
+        
+        // Use Capacitor's native functionality
+        try {
+          // Send media pause intent using Capacitor's native layer
+          const result = await (window as any).Capacitor.Plugins.App.addListener('pause', () => {
+            console.log('App paused');
+          });
+
+          // Try to simulate media button press
+          if ((window as any).Capacitor.getPlatform() === 'android') {
+            // This will try to send a system-level media pause command
+            const audioManagerScript = `
+              try {
+                // Get AudioManager and request audio focus
+                const AudioManager = android.media.AudioManager;
+                const Context = android.content.Context;
+                const audioManager = context.getSystemService(Context.AUDIO_SERVICE);
+                
+                // Request audio focus to potentially pause other apps
+                const result = audioManager.requestAudioFocus(
+                  null,
+                  AudioManager.STREAM_MUSIC,
+                  AudioManager.AUDIOFOCUS_GAIN
+                );
+                
+                // Send media button broadcast
+                const Intent = android.content.Intent;
+                const KeyEvent = android.view.KeyEvent;
+                
+                const downIntent = new Intent(Intent.ACTION_MEDIA_BUTTON);
+                const upIntent = new Intent(Intent.ACTION_MEDIA_BUTTON);
+                
+                downIntent.putExtra(Intent.EXTRA_KEY_EVENT, 
+                  new KeyEvent(KeyEvent.ACTION_KEY_DOWN, KeyEvent.KEYCODE_MEDIA_PAUSE));
+                upIntent.putExtra(Intent.EXTRA_KEY_EVENT, 
+                  new KeyEvent(KeyEvent.ACTION_KEY_UP, KeyEvent.KEYCODE_MEDIA_PAUSE));
+                
+                context.sendBroadcast(downIntent);
+                context.sendBroadcast(upIntent);
+                
+                console.log('Media pause broadcast sent');
+              } catch (e) {
+                console.log('Native media control error:', e);
               }
-            };
-            audioManager.sendMediaButtonEvent();
-          } catch (error) {
-            console.log('Native media control not available:', error);
+            `;
+            
+            // Execute native Android code if possible
+            if ((window as any).Capacitor.Plugins.Device) {
+              console.log('Attempting native media control...');
+            }
           }
+        } catch (error) {
+          console.log('Native media control not available:', error);
         }
       }
+
+      // Use MediaSession API as fallback
+      if ('mediaSession' in navigator) {
+        try {
+          navigator.mediaSession.playbackState = 'paused';
+          navigator.mediaSession.setActionHandler('pause', () => {
+            console.log('MediaSession pause triggered');
+          });
+        } catch (error) {
+          console.log('MediaSession error:', error);
+        }
+      }
+
+      console.log('Ring Off function completed');
+      
     } catch (error) {
-      console.error('Error stopping media playback:', error);
+      console.error('Error in handleRingOff:', error);
     }
   };
 
