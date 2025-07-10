@@ -49,44 +49,52 @@ export const useSignalTracker = () => {
   };
 
 
-  const handleRingOff = async () => {
-    console.log('Ring Off button clicked!');
-    
+  const handleRingOff = () => {
+    // Stop all media playback on the device
     try {
-      // Import and use our custom AudioController plugin
-      const AudioController = (await import('@/plugins/AudioController')).default;
-      const result = await AudioController.stopAllMedia();
+      // Get all audio and video elements and pause them
+      const audioElements = document.querySelectorAll('audio');
+      const videoElements = document.querySelectorAll('video');
       
-      console.log('AudioController result:', result);
+      audioElements.forEach(audio => {
+        audio.pause();
+        audio.currentTime = 0;
+      });
       
-      if (result.success) {
-        console.log('✅ Media stop successful:', result.message);
-      } else {
-        console.log('❌ Media stop failed:', result.message);
+      videoElements.forEach(video => {
+        video.pause();
+        video.currentTime = 0;
+      });
+
+      // Use MediaSession API to handle system-level media controls
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
       }
-      
+
+      // For Capacitor apps, try to use native functionality
+      if ((window as any).Capacitor && (window as any).Capacitor.isNativePlatform()) {
+        // Send a broadcast intent to pause all media (Android specific)
+        if ((window as any).Capacitor.getPlatform() === 'android') {
+          try {
+            // This will attempt to send a media button press event
+            const audioManager = {
+              sendMediaButtonEvent: () => {
+                // Simulate media pause button press
+                const event = new KeyboardEvent('keydown', {
+                  key: 'MediaPause',
+                  code: 'MediaPause'
+                });
+                document.dispatchEvent(event);
+              }
+            };
+            audioManager.sendMediaButtonEvent();
+          } catch (error) {
+            console.log('Native media control not available:', error);
+          }
+        }
+      }
     } catch (error) {
-      console.error('Error in handleRingOff:', error);
-      
-      // Fallback to basic web implementation
-      try {
-        const audioElements = document.querySelectorAll('audio');
-        const videoElements = document.querySelectorAll('video');
-        
-        audioElements.forEach(audio => {
-          audio.pause();
-          audio.currentTime = 0;
-        });
-        
-        videoElements.forEach(video => {
-          video.pause();
-          video.currentTime = 0;
-        });
-        
-        console.log('Fallback: Paused local media elements');
-      } catch (fallbackError) {
-        console.error('Fallback failed:', fallbackError);
-      }
+      console.error('Error stopping media playback:', error);
     }
   };
 
